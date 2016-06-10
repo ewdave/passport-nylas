@@ -1,0 +1,27 @@
+{
+  "name": "passport-nylas",
+  "version": "1.0.0",
+  "description": "Nylas authentication strategy for Passport using the OAuth 2.0 API.",
+  "main": "nylas-strategy.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "passport",
+    "nylas",
+    "auth",
+    "authentication",
+    "nylas email clienr",
+    "email API"
+  ],
+  "author": {
+    "email": "eseyinwale@gmail.com",
+    "name": "Wale Eseyin"
+  },
+  "license": [
+    {
+      "type": "MIT",
+      "url": "http://www.opensource.org/licenses/MIT"
+    }
+  ]
+}
