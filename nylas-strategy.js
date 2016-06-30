@@ -18,13 +18,13 @@ function OAuth2(clientID, clientSecret, authorizationURL, tokenURL, customHeader
 }
 
 // -- https://api.nylas.com/oauth/authorize
-exports.OAuth2.prototype.getAuthorizeUrl = function(params) {
+OAuth2.prototype.getAuthorizeUrl = function(params) {
 	var params = params || {};
 	if (!(this.clientID && this.clientSecret)) {
-		throw new Error("getAuthorizeUrl() cannot be called until you providea client_id and client_secret");
+		throw new Error("getAuthorizeUrl() cannot be called until you provide a client_id and client_secret");
 	}
-	if (params.redirectURI == null) {
-		throw new Error("getAuthorizeUrl() requires params.redirectURI";)
+	if (params.redirect_uri == null) {
+		throw new Error("getAuthorizeUrl() requires a redirect_uri");
 	}
 	if (params.loginHint == null) {
 		params.loginHint = '';
@@ -32,28 +32,29 @@ exports.OAuth2.prototype.getAuthorizeUrl = function(params) {
 	if (params.trial == null) {
 		params.trial = false;
 	}
-	params[client_id] = this.clientID;
+	params.client_id = this.clientID;
 	return this.authorizationURL + "?" + querystring.stringify(params);
 }
 
-exports.OAuth2.prototype.setAccessTokenName = function(name) {
+OAuth2.prototype.setAccessTokenName = function(name) {
 	this._accessTokenName = name;
 }
 
-exports.OAuth2.prototype.getOAuthAccessToken = function(code, params, callback) {
+OAuth2.prototype.getOAuthAccessToken = function(code, params, callback) {
 	var params = params || {};
-	params[client_id] = this.clientID;
-	params[client_secret] = this.clientSecret;
-	params[code] = code;
+	params.client_id = this.clientID;
+	params.client_secret = this.clientSecret;
+	params.code = code;
 
-	var post_data = querystring.stringify(params);
+	//var post_data = querystring.stringify(params);
 
 	var _oauth = this;
 
-	request.post({
-		"headers"	: {'Content-Type' : 'application/x-www-form-urlencoded'},
-		"url"		: _oauth.tokenURL,
-		"form"		: _oauth.post_data
+	request({
+		method	: 'POST',
+		json: true,
+		url		: _oauth.tokenURL,
+		qs		: params
 	}, function(error, response, body) {
 		if (error) { return callback(error, null) }
 		if (response.statusCode === 403) {return callback(403, null) }
@@ -72,8 +73,8 @@ exports.OAuth2.prototype.getOAuthAccessToken = function(code, params, callback) 
 			var email_address = results["email_address"];
 			var access_token = results["access_token"];
 			//var provider = results["provider"];
-			//var account_id = results["account_id"];
-			callback(null, email, access_token, results);
+			//var account_id = results["account_id"]; -- both should be available in the results object
+			callback(null, email_address, access_token, results);
 		}
 	});
 }
@@ -96,30 +97,31 @@ exports.OAuth2.prototype.getOAuthAccessToken = function(code, params, callback) 
 *	- `callbackURL`		your Nylas application's callbackURL -- URL to redirect to after successful authorization
 
 
-* @param {Obkect} options
+* @param {Object} options
 * @param {Function} verify
 * @api public
 */
 function Strategy(options, verify) {
 	options = options || {};
+	options.sessionKey = options.sessionKey || 'oauth2:nylas';
 	/*options.authorizationURL = options.authorizationURL || 'https://api.nylas.com/oauth/authorize';
 	options.tokenURL = options.tokenURL || 'https://api.nylas.com/oauth/token';
 	options.clientID = options.clientID;
 	options.clientSecret = options.clientSecret;
-	options.sessionKey = options.sessionKey || 'oauth2:nylas';
 	options.scope = options.scope;
 	*/
 
 	if (!verify) {throw new TypeError('OAuth2Strategy requires a verify callback'); }
-	if (!options.authorizationURL) {throw new TypeError('OAuth2Strategy requires an authorizationURL option'); }
-	if (!options.tokenURL) {throw new TypeError('OAuth2Strategy requires a tokenURL option'); }
-	if (!options.clientID) {throw new TypeError('OAuth2Strategy requires a clientID option'); }
+	//if (!options.authorizationURL) {throw new TypeError('OAuth2Strategy requires an authorizationURL option'); }
+	//if (!options.tokenURL) {throw new TypeError('OAuth2Strategy requires a tokenURL option'); }
+	//if (!options.clientID) {throw new TypeError('OAuth2Strategy requires a clientID option'); }
 
 	//this._options = options
 	this._verify = verify;
 	this._oauth2 = new OAuth2(options.clientID, options.clientSecret, options.authorizationURL, options.tokenURL, options.customHeaders);
 	this._scope = options.scope;
 	this._callbackURL = options.callbackURL;
+
 
 	this.name = 'nylas';
 }
@@ -128,7 +130,7 @@ util.inherits(Strategy, OAuth2Strategy);
 
 
 /**
-* Authenticating request using OAuth 2.0
+* Authenticating request using the OAuth 2.0 protocol
 * @param {Object} req
 * @api protected
 */
@@ -144,40 +146,47 @@ Strategy.prototype.authenticate = function(req, options) {
 		}
 	}
 
-	//if (!req.session) { return this.error(new Error('OAuth authentication requires session support '))}
+	if (!req.session) { return this.error(new Error('OAuth authentication requires session support '))}
 
 	var self = this;
 
-	if (req.query && req.query.code) {
-
-		var code = req.query.code;
+	req.session.nylasCode = req.query.code;
+	if (req.session && req.session.nylasCode) {
 
 		function verified(err, user, info) {
 			if (err) {return self.error(err); }
 			if (!user) {return self.fail(info); }
 
 			info = info || {};
+			req.session.nylasData.info = info;
 			self.success(user, info);
 		}
 
 		var params = this.tokenParams(options);
 		params.grant_type = 'authorization_code';
 		//params.redirect_uri = this._callbackURL;
+		if (req.session.nylasData) {
+			self.pass(req.session.nylasData.email, req.session.nylasData.info );
+		} else {
+			this._oauth2.getOAuthAccessToken(req.session.nylasCode, params, 
+				function(err, email, accessToken, params) {
+					if (err) {return self.error(new InternalOAuthError('failed to obtain access token', err)); }
+					
+					//Additional nylas boject returned
+					var nylas = {};
+					nylas.provider = params.provider || null;
+					nylas.account_id = params.account_id || null;
+					nylas.token_type = params.token_type || null;
+					nylas.scope = params.scope || null;
+					req.session.nylasData = {
+						email: email,
+						accessToken: accessToken
+					}
 
-		this._oauth2.getOAuthAccessToken(code, params, 
-			function(err, email, accessToken, params) {
-				if (err) {return self.error(new InternalOAuthError('failed to obtain access token', err)); }
-				
-				//Additional nylas boject returned
-				var nylas = {};
-				nylas.provider = params.provider || null;
-				nylas.account_id = params.account_id || null;
-				nylas.token_type = params.token_type || null;
-				nylas.scope = params.scope || null;
-
-				self._verify(email, accessToken, nylas, verified);
-			}
-		);
+					self._verify(email, accessToken, nylas, verified);
+				}
+			);
+		}
 	} else {
 		var params = this.authorizationParams(options);
 			params.response_type = 'code';
@@ -215,6 +224,53 @@ Strategy.prototype.authorizationParams = function(options) {
 */
 Strategy.prototype.tokenParams = function(options) {
 	return options;
+};
+
+//example
+Strategy.prototype.getThread = function(accessToken, params, offset, limit, callback) {
+	return request({
+		method: 'GET',
+		path: "https://api.nylas.com/threads",
+		auth: {
+			'user': accessToken,
+			'pass': '',
+			'sendImmediately': true
+		},
+		json: true,
+		qs: {
+			offset: offset,
+			limit: limit
+		}
+	}, function(error, response, body) {
+		if (body) {
+			return callback(null, body);
+		}
+	})
+}
+
+Strategy.prototype.getFirstThread = function(accessToken, params, callback) {
+	
+	if (params == null) {
+		params = {};
+	}
+	return this.getThread(params, 0, 1, function(err, data) {
+		if (err) return callback(err, null);
+		if (data) {
+			callback(null, data[0]);
+		}
+	});
+};
+
+Strategy.prototype.findThread = function(id, callback) {
+	request({
+		method: 'GET',
+		path: 'https://api.nylas.com/threads' + id,
+		json: true,
+	}, function(err, response, body) {
+		if (body) {
+			callback(err, body);
+		}
+	});
 };
 
 module.exports = Strategy;
