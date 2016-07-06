@@ -59,23 +59,11 @@ OAuth2.prototype.getOAuthAccessToken = function(code, params, callback) {
 		if (error) { return callback(error, null) }
 		if (response.statusCode === 403) {return callback(403, null) }
 
-		else {
-			var results;
-			try {
-				//response body should be in JSON
-				// http://tools.ietf.org/html/draft-ietf-oauth-v2-07
-				results = JSON.parse(body);
-			}
-			catch(e) {
-				//Content-Type thrown correctly?
-				results =  querystring.parse(body);
-			}
-			var email_address = results["email_address"];
-			var access_token = results["access_token"];
-			//var provider = results["provider"];
-			//var account_id = results["account_id"]; -- both should be available in the results object
-			callback(null, email_address, access_token, results);
-		}
+		var email_address = body["email_address"];
+		var access_token = body["access_token"];
+		//var provider = results["provider"];
+		//var account_id = results["account_id"]; -- both should be available in the results object
+		return callback(null, email_address, access_token, body);
 	});
 }
 
@@ -170,6 +158,8 @@ Strategy.prototype.authenticate = function(req, options) {
 		} else {
 			this._oauth2.getOAuthAccessToken(req.session.nylasCode, params, 
 				function(err, email, accessToken, params) {
+					console.log(email);
+					console.log(accessToken);
 					if (err) {return self.error(new InternalOAuthError('failed to obtain access token', err)); }
 					
 					//Additional nylas boject returned
@@ -253,7 +243,7 @@ Strategy.prototype.getFirstThread = function(accessToken, params, callback) {
 	if (params == null) {
 		params = {};
 	}
-	return this.getThread(params, 0, 1, function(err, data) {
+	return this.getThread(accessToken, params, 0, 1, function(err, data) {
 		if (err) return callback(err, null);
 		if (data) {
 			callback(null, data[0]);
