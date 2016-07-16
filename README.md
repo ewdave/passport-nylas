@@ -18,7 +18,7 @@ The Nylas authentication strategy authenticates users using an email account fro
 The strategy requires a `verify` callback, which receives the access token and username as arguments. The `verify` callback must call `done` providing a user to complete authentication.
 
 In order to identify your application to Nylas, provide a clientID and clientSecret and callbackURI within options.
-You can obtain your clientID and clientSecret by [creating an application](https://nylas.com/developer) at Nylas's developers site.
+You can obtain your clientID and clientSecret by [Creating an Application](https://nylas.com/developers) at Nylas's developers site.
 
 ```js
 	
