@@ -23,17 +23,17 @@ You can obtain your clientID and clientSecret by [creating an application](https
 ```js
 	
 
-	passport.use(new NylasStrategy({
-		clientID: process.env.CLIENT_ID,
-		clientSecret: process.env.CLIENT_SECRET,
-		callbackURL: process.env.callbackURI
-		},
-		function(email, accessToken, profile, done) {
-			User.findOne({nylasId: profile.id}, function(err, user) {
-				return done(err, user)
-				});
-			}
-	));
+passport.use(new NylasStrategy({
+	clientID: process.env.CLIENT_ID,
+	clientSecret: process.env.CLIENT_SECRET,
+	callbackURL: process.env.callbackURI
+	},
+	function(email, accessToken, profile, done) {
+		User.findOne({nylasId: profile.id}, function(err, user) {
+			return done(err, user)
+			});
+		}
+));
 
 ```
 
