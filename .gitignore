@@ -1,6 +1,7 @@
 # Node.js Dependency Directory
 node_modules
 npm-debug.log
+sample-methods.js
 
 examples/node_modules
 ###

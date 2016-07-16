@@ -2,8 +2,8 @@ var OAuth2Strategy = require('passport-oauth2')
 	, request = require('request')
 	, querystring = require('querystring')
 	, util = require('util')
-	, AuthorizationError = require('passport-oauth2').AuthorizationError
-	, InternalOAuthError = require('passport-oauth2').InternalOAuthError
+	, AuthorizationError = OAuth2Strategy.AuthorizationError
+	, InternalOAuthError = OAuth2Strategy.InternalOAuthError
 	;
 
 function OAuth2(clientID, clientSecret, authorizationURL, tokenURL, customHeaders) {
@@ -190,7 +190,7 @@ Strategy.prototype.authenticate = function(req, options) {
 };
 
 /* Authorize URL = "/oauth/authorize?client_id=" + 
-	this.appId + 
+	this.clientID + 
 	"&trial=" + options.trial + 
 	"&response_type=code&scope=email&login_hint=" + 
 	options.loginHint + 
@@ -214,53 +214,6 @@ Strategy.prototype.authorizationParams = function(options) {
 */
 Strategy.prototype.tokenParams = function(options) {
 	return options;
-};
-
-//example
-Strategy.prototype.getThread = function(accessToken, params, offset, limit, callback) {
-	return request({
-		method: 'GET',
-		path: "https://api.nylas.com/threads",
-		auth: {
-			'user': accessToken,
-			'pass': '',
-			'sendImmediately': true
-		},
-		json: true,
-		qs: {
-			offset: offset,
-			limit: limit
-		}
-	}, function(error, response, body) {
-		if (body) {
-			return callback(null, body);
-		}
-	})
-}
-
-Strategy.prototype.getFirstThread = function(accessToken, params, callback) {
-	
-	if (params == null) {
-		params = {};
-	}
-	return this.getThread(accessToken, params, 0, 1, function(err, data) {
-		if (err) return callback(err, null);
-		if (data) {
-			callback(null, data[0]);
-		}
-	});
-};
-
-Strategy.prototype.findThread = function(id, callback) {
-	request({
-		method: 'GET',
-		path: 'https://api.nylas.com/threads' + id,
-		json: true,
-	}, function(err, response, body) {
-		if (body) {
-			callback(err, body);
-		}
-	});
 };
 
 module.exports = Strategy;
