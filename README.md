@@ -23,17 +23,17 @@ You can obtain your clientID and clientSecret by [creating an application](https
 ```js
 	
 
-		passport.use(new NylasStrategy({
-			clientID: process.env.CLIENT_ID,
-			clientSecret: process.env.CLIENT_SECRET,
-			callbackURL: process.env.callbackURI
-			},
-			function(email, accessToken, profile, done) {
-				User.findOne({nylasId: profile.id}, function(err, user) {
-					return done(err, user)
-					});
-				}
-		));
+	passport.use(new NylasStrategy({
+		clientID: process.env.CLIENT_ID,
+		clientSecret: process.env.CLIENT_SECRET,
+		callbackURL: process.env.callbackURI
+		},
+		function(email, accessToken, profile, done) {
+			User.findOne({nylasId: profile.id}, function(err, user) {
+				return done(err, user)
+				});
+			}
+	));
 
 ```
 
@@ -46,23 +46,23 @@ E.g
 
 ```js
 	
-	app.get('/auth/nylas', passport.authenticate('nylas'));
+app.get('/auth/nylas', passport.authenticate('nylas'));
 
-	app.get('/auth/nylas/cb/', function(req, res, next) {
-		passport.authenticate('nylas',
-			function(err, user, info) {
-				if (err) {
-					res.redirect('/login');
-				}
-				req.login(user, function(err) {
-					if (err) {
-						console.log('Internal Error, Do try again later');
-					}
-					res.redirect('/');
-				})
+app.get('/auth/nylas/cb/', function(req, res, next) {
+	passport.authenticate('nylas',
+		function(err, user, info) {
+			if (err) {
+				res.redirect('/login');
 			}
-		)(req, res, next);
-	});
+			req.login(user, function(err) {
+				if (err) {
+					console.log('Internal Error, Do try again later');
+				}
+				res.redirect('/');
+			})
+		}
+	)(req, res, next);
+});
 
 ```
 
@@ -73,7 +73,7 @@ Permission can be requested via the `scope` option to `passport.authenticate()`
 
 For example:
 ```js
-		app.get('/auth/nylas', passport.authenticate('nylas', {scope: 'email'}));
+app.get('/auth/nylas', passport.authenticate('nylas', {scope: 'email'}));
 
 ```
 
