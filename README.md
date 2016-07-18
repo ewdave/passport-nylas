@@ -7,7 +7,7 @@ By plugging into Passport. Twitter authentication can be easily and unobstusivel
 
 ## Installation
 
-`npm install passport-nylas`
+` $ npm install passport-nylas`
 
 
 ## Usage
