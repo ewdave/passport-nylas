@@ -56,6 +56,7 @@ OAuth2.prototype.getOAuthAccessToken = function(code, params, callback) {
 		url		: _oauth.tokenURL,
 		qs		: params
 	}, function(error, response, body) {
+		//Check for Error and return 403
 		if (error) { return callback(error, null) }
 		if (response.statusCode === 403) {return callback(403, null) }
 
